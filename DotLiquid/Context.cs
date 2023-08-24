@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using DotLiquid.Exceptions;
 using DotLiquid.Util;
+using static DotLiquid.Util.Range;
 
 namespace DotLiquid
 {
@@ -247,7 +248,7 @@ namespace DotLiquid
             // Ranges.
             match = RangesRegex.Match( key );
 			if (match.Success)
-				return Range.Inclusive(Convert.ToInt32(Resolve(match.Groups[1].Value)),
+				return Inclusive(Convert.ToInt32(Resolve(match.Groups[1].Value)),
 					Convert.ToInt32(Resolve(match.Groups[2].Value)));
 
             // Decimals.
