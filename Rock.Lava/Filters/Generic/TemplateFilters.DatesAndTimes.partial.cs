@@ -359,6 +359,7 @@ namespace Rock.Lava.Filters
         /// <returns></returns>
         public static int? DaysUntil( object input )
         {
+
             DateTime date;
 
             if ( input == null )
@@ -372,13 +373,12 @@ namespace Rock.Lava.Filters
             }
             else
             {
-                DateTime.TryParse( input.ToString(), out date );
+                if ( !DateTime.TryParse( input.ToString(), out date ) )
+                {
+                    return null;
+                }
             }
 
-            if ( date == null )
-            {
-                return null;
-            }
 
             return ( date - RockDateTime.Now ).Days;
         }
@@ -602,14 +602,14 @@ namespace Rock.Lava.Filters
                 }
                 else
                 {
-                    DateTime.TryParse( input.ToString(), out date );
+                    if ( !DateTime.TryParse( input.ToString(), out date ) )
+                    {
+                        return null;
+                    }
                 }
             }
 
-            if ( date == null )
-            {
-                return null;
-            }
+
 
             // Get the day of week value
             if ( !Enum.TryParse( dayOfWeek, out dayOfWeekValue ) )

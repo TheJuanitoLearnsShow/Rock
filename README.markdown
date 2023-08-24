@@ -4,13 +4,18 @@ The steps that will be attempted are:
 
 1. convert projects to .net standard 2.1
 2. Isolate as much logic as possible away from System.web
-1. pull any classes that do not rely on system.web from the proj and into a .net 8 csproj
+  1. pull any classes that do not rely on system.web from the proj and into a .net 8 csproj
+
 3. Try creating a test proj
 4. create a ascx control thAt acts as a reverse proxy that delegates the rendering to a .net 8 web service.
 
 - anything that cannot be replicated, let the webforms handle it
 
 5. Webforms effectively becomes a View engine/layer
+
+### csprojs referencing system.web
+1. Rock.Lava
+2. Rock.Lava.Shared, .Liquid and .Fluid
 
 ![Rock RMS](https://raw.githubusercontent.com/SparkDevNetwork/Rock/develop/Images/github-banner.png)
 
