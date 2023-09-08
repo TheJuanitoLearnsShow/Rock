@@ -782,9 +782,10 @@ namespace Rock.Jobs
                 var personSearchOptions = PersonService.PersonQueryOptions.AllRecords();
                 personSearchOptions.IncludeAnonymousVisitor = false;
 
+                // Update Person records that have an empty or placeholder PrimaryAlias reference.
                 var people = personService.Queryable( personSearchOptions )
                     .Include( p => p.Aliases )
-                    .Where( p => p.PrimaryAliasId == null )
+                    .Where( p => p.PrimaryAliasId == null || p.PrimaryAliasId == 0 )
                     .Take( 300 );
 
                 foreach ( var person in people )
@@ -1215,6 +1216,12 @@ namespace Rock.Jobs
                     cacheExpirationDate,
                     args.CacheMaximumFilesToRemove,
                     compareFileDateModified: true );
+            }
+
+            // If the Avatar Cache folder happens to be missing, create it.
+            if ( !Directory.Exists( avatarCachePath ) )
+            {
+                Directory.CreateDirectory( avatarCachePath );
             }
 
             if ( validationMessages.Any() )
