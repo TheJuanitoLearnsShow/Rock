@@ -34,6 +34,7 @@ using Rock;
 using Rock.Bus.Message;
 using Rock.Data;
 using Rock.Model;
+using Rock.Security;
 using Rock.Transactions;
 using Rock.Utility.Settings;
 using Rock.VersionInfo;
@@ -96,6 +97,7 @@ namespace RockWeb.Blocks.Administration
             {
                 ShowDetailTab();
             }
+
         }
 
         /// <summary>
@@ -151,6 +153,11 @@ namespace RockWeb.Blocks.Administration
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
         protected void btnClearCache_Click( object sender, EventArgs e )
         {
+            if ( !IsUserAuthorized( Authorization.ADMINISTRATE ) )
+            {
+                return;
+            }
+
             var msgs = RockCache.ClearAllCachedItems();
 
             // Flush today's Check-in Codes
@@ -197,6 +204,11 @@ namespace RockWeb.Blocks.Administration
 
         protected void btnRestart_Click( object sender, EventArgs e )
         {
+            if ( !IsUserAuthorized( Authorization.ADMINISTRATE ) )
+            {
+                return;
+            }
+
             RockWebFarm.OnRestartRequested( CurrentPerson );
             RestartWebApplication();
         }
@@ -281,7 +293,7 @@ namespace RockWeb.Blocks.Administration
         {
             StringBuilder sb = new StringBuilder();
 
-            var result = DbService.ExecuteScaler( "SELECT TOP 1 [MigrationId] FROM [__MigrationHistory] ORDER BY [MigrationId] DESC ", CommandType.Text, null );
+            var result = DbService.ExecuteScalar( "SELECT TOP 1 [MigrationId] FROM [__MigrationHistory] ORDER BY [MigrationId] DESC ", CommandType.Text, null );
             if ( result != null )
             {
                 sb.AppendFormat( "Last Core Migration: {0}{1}", ( string ) result, Environment.NewLine );
@@ -492,6 +504,12 @@ namespace RockWeb.Blocks.Administration
             else if ( _ActivePanel == SystemInfoPanels.Diagnostics )
             {
                 LoadPageDiagnostics();
+            }
+
+            if ( !IsUserAuthorized( Authorization.ADMINISTRATE ) )
+            {
+                divActions.Visible = false;
+                btnDrainQueue.Visible = false;
             }
 
             SetActivePanel( _ActivePanel );

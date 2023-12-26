@@ -31,6 +31,8 @@ export const FieldType = {
     AssessmentType: "C263513A-30BE-4823-ABF1-AC12A56F9644",
     /** Asset field type */
     Asset: "FC27D395-8F57-467E-91FF-E648F807110E",
+    /** Asset storage provider field type */
+    AssetStorageProvider: "1596F562-E8D0-4C5F-9A00-23B5594F17E2",
     /** Asset Storage System field type */
     AssetStorageSystem: "A57109EE-35A2-45D0-A575-02DBBDFBC0D0",
     /** Attribute field type */
@@ -103,6 +105,8 @@ export const FieldType = {
     ContentChannelType: "2B58514E-47F8-4740-A72C-B862B030855B",
     /** Content Channel Types field type */
     ContentChannelTypes: "DF974799-6656-4F0C-883D-85E44EEC999A",
+    /** Content Channels field type */
+    ContentChannels: "0E2B924A-C1AC-4A7C-AD77-A036581552D4",
     /** Currency field type */
     Currency: "3EE69CBC-35CE-4496-88CC-8327A447603F",
     /** A measure of necessity and/or availability of a data entry field. */
@@ -133,6 +137,8 @@ export const FieldType = {
     DefinedValueCategorized: "3217C31F-85B6-4E0D-B6BE-2ADB0D28588D",
     /** Defined Value Range field type */
     DefinedValueRange: "B5C07B16-844D-4620-82E3-4CCA8F5FC350",
+    /** Document Type field type */
+    DocumentType: "1FD31CDC-E5E2-431B-8D53-72FC0430044D",
     /** Email field type */
     Email: "3D045CAE-EA72-4A04-B7BE-7FD1D6214217",
     /** Email Template field type */
@@ -185,6 +191,8 @@ export const FieldType = {
     IntegerRange: "9D5F21E0-DEA0-4E8E-BA42-71151F6A8ED4",
     /** Interaction Channel field type */
     InteractionChannel: "5EE5D193-60B6-4808-9BE9-C5FFDDF444E4",
+    /** Interaction Channel Interaction Component field type */
+    InteractionChannelInteractionComponent: "299F8444-BB47-4B6C-B523-235156BF96DC",
     /** Interaction Channels field type */
     InteractionChannels: "D5781EB0-3A2A-4FBB-AF8E-E14664147003",
     /** Key Value List field type */
@@ -231,6 +239,8 @@ export const FieldType = {
     NoteTypes: "276CCA63-5670-48CA-8B5A-2AAC97E8EE5E",
     /** Page Reference field type */
     PageReference: "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108",
+    /** Persisted Dataset field type */
+    PersistedDataset: "392865C4-F17B-4832-AB59-20F72BB1C9F6",
     /** Person field type */
     Person: "E4EAB7B2-0B76-429B-AFE4-AD86D7428C70",
     /** Person Badges field type */
@@ -271,6 +281,18 @@ export const FieldType = {
     SocialMediaAccount: "92C0E3A1-9F63-49D4-B23B-73624AC42546",
     /** Social Security Number */
     Ssn: "4722C99A-C078-464A-968F-13AB5E8E318F",
+    /** Step field type. */
+    Step: "829803DB-7CA3-44F6-B1CB-669D61ED6E92",
+    /** Step program field type. */
+    StepProgram: "33875369-7D2B-4CD7-BB89-ABC29906CCAE",
+    /** Step propgram step status field type. */
+    StepProgramStepStatus: "F8E85355-2780-4772-9B21-30B84741E6D1",
+    /** Step program step type field type. */
+    StepProgramStepType: "B00149C7-08D6-448C-AF21-948BF453DF7E",
+    /** Streak Type field type */
+    StreakType: "F1411F4A-BD4B-4F80-9A83-94026C009F4D",
+    /** Streak Type field type */
+    StructureContentEditor: "92C88D02-CE12-4217-80FB-19422B758437",
     /** System Communication field type */
     SystemCommunication: "72ED40C7-4D64-4D60-9411-4FFB2B9E833E",
     /** System Email field type */

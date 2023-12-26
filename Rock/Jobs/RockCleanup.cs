@@ -34,6 +34,7 @@ using Rock.Logging;
 using Rock.Model;
 using Rock.Observability;
 using Rock.Web.Cache;
+using WebGrease.Css.Extensions;
 
 namespace Rock.Jobs
 {
@@ -157,6 +158,17 @@ namespace Rock.Jobs
         }
 
         /// <summary>
+        /// Keys to identify specific RockCleanupJob Tasks.
+        /// </summary>
+        public static class JobTaskKey
+        {
+            /// <summary>
+            /// Remove interaction sessions that do not have any associated interactions.
+            /// </summary>
+            public const string InteractionSessionCleanup = "InteractionSessionCleanup";
+        }
+
+        /// <summary>
         /// Empty constructor for job initialization
         /// <para>
         /// Jobs require a public empty constructor so that the
@@ -172,13 +184,29 @@ namespace Rock.Jobs
         private int commandTimeout;
         private int batchAmount;
         private DateTime lastRunDateTime;
+        private List<string> _enabledTaskKeys = null;
 
         /// <inheritdoc cref="RockJob.Execute()" />
         public override void Execute()
         {
-            batchAmount = GetAttributeValue( AttributeKey.BatchCleanupAmount ).AsIntegerOrNull() ?? 1000;
-            commandTimeout = GetAttributeValue( AttributeKey.CommandTimeout ).AsIntegerOrNull() ?? 900;
-            lastRunDateTime = Rock.Web.SystemSettings.GetValue( Rock.SystemKey.SystemSetting.ROCK_CLEANUP_LAST_RUN_DATETIME ).AsDateTime() ?? RockDateTime.Now.AddDays( -1 );
+            // Read the job configuration from the data store.
+            var args = new RockCleanupActionArgs
+            {
+                DefaultBatchSize = GetAttributeValue( AttributeKey.BatchCleanupAmount ).AsIntegerOrNull(),
+                DefaultCommandTimeout = GetAttributeValue( AttributeKey.CommandTimeout ).AsIntegerOrNull(),
+                LastExecutionDateTime = Rock.Web.SystemSettings.GetValue( Rock.SystemKey.SystemSetting.ROCK_CLEANUP_LAST_RUN_DATETIME ).AsDateTime()
+            };
+            Execute( args );
+        }
+
+        internal void Execute( RockCleanupActionArgs args )
+        {
+            // Set global variables.
+            batchAmount = args.DefaultBatchSize ?? 1000;
+            commandTimeout = args.DefaultCommandTimeout ?? 900;
+            lastRunDateTime = args.LastExecutionDateTime ?? RockDateTime.Now.AddDays( -1 );
+            _enabledTaskKeys = args.EnabledTaskKeys;
+
             /* 
                 IMPORTANT!! MDP 2020-05-05
 
@@ -201,7 +229,7 @@ namespace Rock.Jobs
 
             RunCleanupTask( "old interaction", () => CleanupOldInteractions() );
 
-            RunCleanupTask( "unused interaction session", () => CleanupUnusedInteractionSessions() );
+            RunCleanupTask( "unused interaction session", () => CleanupUnusedInteractionSessions(), JobTaskKey.InteractionSessionCleanup );
 
             RunCleanupTask( "audit log", () => PurgeAuditLog() );
 
@@ -428,8 +456,19 @@ namespace Rock.Jobs
         /// </summary>
         /// <param name="cleanupTitle">The cleanup title.</param>
         /// <param name="cleanupMethod">The cleanup method.</param>
-        private void RunCleanupTask( string cleanupTitle, Func<int> cleanupMethod )
+        /// <param name="taskKey"></param>
+        private void RunCleanupTask( string cleanupTitle, Func<int> cleanupMethod, string taskKey = null )
         {
+            // If an enabled action filter exists, check if this action is included in the filter.
+            if ( _enabledTaskKeys != null
+                 && _enabledTaskKeys.Any() )
+            {
+                if ( taskKey == null || !_enabledTaskKeys.Contains( taskKey ) )
+                {
+                    return;
+                }
+            }
+
             // Start observability task
             using ( var activity = ObservabilityHelper.StartActivity( $"Task: {cleanupTitle.Pluralize().ApplyCase( LetterCasing.Title )}" ) )
             {
@@ -701,6 +740,21 @@ namespace Rock.Jobs
                 var currentDateTime = RockDateTime.Now;
 
                 familyRockContext.BulkUpdate( activeFamilyWithNoActiveMembers, x => new Rock.Model.Group { IsActive = false } );
+            }
+
+            // Update people who have names with extra spaces between words (Issue #2990). See notes in Asana on query performance. Note
+            // that values with more than two spaces could take multiple runs to correct.
+            using( var nameCleanupRockContext = CreateRockContext() )
+            {
+                var peopleWithExtraSpaceNames = new PersonService( nameCleanupRockContext ).Queryable()
+                    .Where( p => p.NickName.Contains( "  " ) || p.LastName.Contains( "  " ) || p.FirstName.Contains( "  " ) || p.MiddleName.Contains( "  " ) );
+
+                nameCleanupRockContext.BulkUpdate( peopleWithExtraSpaceNames, x => new Person {
+                                                                NickName = x.NickName.Replace( "  ", " " ),
+                                                                LastName = x.LastName.Replace( "  ", " " ),
+                                                                FirstName = x.FirstName.Replace( "  ", " " ),
+                                                                MiddleName = x.MiddleName.Replace( "  ", " " )
+                                                            } );
             }
 
             return resultCount;
@@ -1424,14 +1478,6 @@ namespace Rock.Jobs
         private int CleanupUnusedInteractionSessions()
         {
             int totalRowsDeleted = 0;
-            var currentDateTime = RockDateTime.Now;
-
-            // If there are no channels with a retention policy then don't bother looking for orphans.
-            var interactionChannelsWithRentionDurations = InteractionChannelCache.All().Where( ic => ic.RetentionDuration.HasValue );
-            if ( !interactionChannelsWithRentionDurations.Any() )
-            {
-                return 0;
-            }
 
             // delete any InteractionSession records that are no longer used.
             using ( var interactionSessionRockContext = CreateRockContext() )
@@ -2578,6 +2624,22 @@ SELECT @@ROWCOUNT
                 }
             }
 
+            // Manually update the CreatedByPersonAliasId and ModifiedByPersonAliasId
+            // columns to be null for any aliases that do not exist anymore.
+            // This needs to be done since we removed the foreign keys in Rock v17.0.
+            using ( var rockContext = CreateRockContext() )
+            {
+                rockContext.Database.ExecuteSqlCommand( @"UPDATE [Interaction]
+SET [CreatedByPersonAliasId] = NULL
+WHERE [CreatedByPersonAliasId] IS NOT NULL
+  AND [CreatedByPersonAliasId] NOT IN (SELECT [Id] FROM [PersonAlias])" );
+
+                rockContext.Database.ExecuteSqlCommand( @"UPDATE [Interaction]
+SET [ModifiedByPersonAliasId] = NULL
+WHERE [ModifiedByPersonAliasId] IS NOT NULL
+  AND [ModifiedByPersonAliasId] NOT IN (SELECT [Id] FROM [PersonAlias])" );
+            }
+
             return deleteCount;
         }
 
@@ -2618,7 +2680,7 @@ SELECT @@ROWCOUNT
         private int SynchronizeLegacySmsPhoneNumbers()
         {
             List<int> systemPhoneNumberIds;
-                
+
             using ( var rockContext = CreateRockContext() )
             {
                 systemPhoneNumberIds = new SystemPhoneNumberService( rockContext )
@@ -2825,7 +2887,7 @@ SELECT @@ROWCOUNT
         /// </summary>
         private int CalculateAgeAndAgeBracketOnAnalyticsSourceDate()
         {
-            const string UpdateAgeAndAgeBracketSql = @"
+            var UpdateAgeAndAgeBracketSql = $@"
 DECLARE @Today DATE = GETDATE()
 BEGIN 
 	UPDATE A
@@ -2835,43 +2897,64 @@ BEGIN
 		ELSE 0
 	END,
 	[AgeBracket] = CASE
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+        -- When the age is between 0 and 5 then use the ZeroToFive value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END
-		BETWEEN 0 AND 12 THEN 1
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+		BETWEEN 0 AND 5 THEN {Rock.Enums.Crm.AgeBracket.ZeroToFive.ConvertToInt()}
+        -- When the age is between 6 and 12 then use the SixToTwelve value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 13 AND 17 THEN 2
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+        BETWEEN 6 AND 12 THEN {Rock.Enums.Crm.AgeBracket.SixToTwelve.ConvertToInt()}
+        -- When the age is between 13 and 17 then use the ThirteenToSeventeen value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 18 AND 24 THEN 3
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+        BETWEEN 13 AND 17 THEN {Rock.Enums.Crm.AgeBracket.ThirteenToSeventeen.ConvertToInt()}
+        -- When the age is between 18 and 24 then use the EighteenToTwentyFour value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 25 AND 34 THEN 4
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+        BETWEEN 18 AND 24 THEN {Rock.Enums.Crm.AgeBracket.EighteenToTwentyFour.ConvertToInt()}
+        -- When the age is between 25 and 34 then use the TwentyFiveToThirtyFour value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 35 AND 44 THEN 5
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+        BETWEEN 25 AND 34 THEN {Rock.Enums.Crm.AgeBracket.TwentyFiveToThirtyFour.ConvertToInt()}
+        -- When the age is between 35 and 44 then use the ThirtyFiveToFortyFour value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 45 AND 54 THEN 6
-		WHEN DATEDIFF(YEAR, A.[Date], @Today) - 
+			    ELSE 0
+		    END)
+        BETWEEN 35 AND 44 THEN {Rock.Enums.Crm.AgeBracket.ThirtyFiveToFortyFour.ConvertToInt()}
+        -- When the age is between 45 and 54 then use the FortyFiveToFiftyFour value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
 			CASE 
 				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
-			ELSE 0
-		END BETWEEN 55 AND 64 THEN 7
-		ELSE 8
+			    ELSE 0
+		    END)
+        BETWEEN 45 AND 54 THEN {Rock.Enums.Crm.AgeBracket.FortyFiveToFiftyFour.ConvertToInt()}
+        -- When the age is between 55 and 64 then use the FiftyFiveToSixtyFour value.
+		WHEN (DATEDIFF(YEAR, A.[Date], @Today) - 
+			CASE 
+				WHEN DATEADD(YY, DATEDIFF(yy, A.[Date], @Today), A.[Date]) > @Today THEN 1
+			    ELSE 0
+		    END)
+        BETWEEN 55 AND 64 THEN {Rock.Enums.Crm.AgeBracket.FiftyFiveToSixtyFour.ConvertToInt()}
+        -- When the age is greater than 65 then use the SixtyFiveOrOlder value.
+		ELSE {Rock.Enums.Crm.AgeBracket.SixtyFiveOrOlder.ConvertToInt()}
 	END
 	FROM AnalyticsSourceDate A
 	INNER JOIN AnalyticsSourceDate B
@@ -2911,7 +2994,7 @@ BEGIN
 		ELSE A.[Age] 
 		END,
 	P.[AgeBracket] = CASE
-        WHEN A.[AgeBracket] IS NULL THEN 0
+        WHEN A.[AgeBracket] IS NULL THEN -1
         ELSE A.[AgeBracket]
         END        
 	FROM Person P
@@ -3128,6 +3211,27 @@ END
         /// </remarks>
         internal class RockCleanupActionArgs
         {
+            /// <summary>
+            /// The number of records to process for each iteration of a batch operation.
+            /// </summary>
+            public int? DefaultBatchSize;
+
+            /// <summary>
+            /// The default timeout (in seconds) for database operations.
+            /// </summary>
+            public int? DefaultCommandTimeout;
+
+            /// <summary>
+            /// The last time this job was executed.
+            /// </summary>
+            public DateTime? LastExecutionDateTime;
+
+            /// <summary>
+            /// A set of task identifiers indicating the tasks that will be performed for this job execution.
+            /// If not specified, all tasks will be performed.
+            /// </summary>
+            public List<string> EnabledTaskKeys = new List<string>();
+
             /// <summary>
             /// The path to the image cache.
             /// </summary>

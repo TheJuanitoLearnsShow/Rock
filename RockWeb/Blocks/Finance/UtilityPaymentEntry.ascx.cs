@@ -584,7 +584,6 @@ namespace RockWeb.Blocks.Finance
 
             // Advanced Category
             public const string AllowAccountOptionsInURL = "AllowAccountOptionsInURL";
-            public const string InvalidAccountInURLMessage = "InvalidAccountInURLMessage";
             public const string OnlyPublicAccountsInURL = "OnlyPublicAccountsInURL";
             public const string InvalidAccountMessage = "InvalidAccountMessage";
             public const string AccountCampusContext = "AccountCampusContext";
@@ -698,6 +697,7 @@ mission. We are so grateful for your commitment.</p>
             public const string StartDate = "StartDate";
             public const string Transfer = "Transfer";
             public const string ParticipationMode = "ParticipationMode";
+            public const string CampusId = "CampusId";
         }
 
         private static class ViewStateKey
@@ -1128,7 +1128,10 @@ mission. We are so grateful for your commitment.</p>
         {
             var allowAccountsInUrl = this.GetAttributeValue( AttributeKey.AllowAccountOptionsInURL ).AsBoolean();
             var rockContext = new RockContext();
-            List<int> selectableAccountIds = new FinancialAccountService( rockContext ).GetByGuids( this.GetAttributeValues( AttributeKey.AccountsToDisplay ).AsGuidList() ).Select( a => a.Id ).ToList();
+            List<int> selectableAccountIds = new FinancialAccountService( rockContext ).GetByGuids( this.GetAttributeValues( AttributeKey.AccountsToDisplay ).AsGuidList() )
+                .OrderBy( a => a.Order )
+                .Select( a => a.Id )
+                .ToList();
             CampusAccountAmountPicker.AccountIdAmount[] accountAmounts = null;
             caapPromptForAccountAmounts.AccountHeaderTemplate = this.GetAttributeValue( AttributeKey.AccountHeaderTemplate );
 
@@ -1144,6 +1147,7 @@ mission. We are so grateful for your commitment.</p>
                 caapPromptForAccountAmounts.AmountEntryMode = CampusAccountAmountPicker.AccountAmountEntryMode.SingleAccount;
             }
 
+            caapPromptForAccountAmounts.CampusId = GetCampusId( _targetPerson );
             caapPromptForAccountAmounts.UseAccountCampusMappingLogic = this.GetAttributeValue( AttributeKey.UseAccountCampusMappingLogic ).AsBooleanOrNull() ?? false;
             caapPromptForAccountAmounts.AskForCampusIfKnown = this.GetAttributeValue( AttributeKey.AskForCampusIfKnown ).AsBoolean();
             caapPromptForAccountAmounts.IncludeInactiveCampuses = this.GetAttributeValue( AttributeKey.IncludeInactiveCampuses ).AsBoolean();
@@ -1165,6 +1169,7 @@ mission. We are so grateful for your commitment.</p>
                 .Select( a => a.Id ).ToArray();
 
             caapPromptForAccountAmounts.IncludedCampusTypeIds = includedCampusTypeIds;
+            caapPromptForAccountAmounts.AllowPrivateSelectableAccounts = !GetAttributeValue( AttributeKey.OnlyPublicAccountsInURL ).AsBoolean();
 
             if ( allowAccountsInUrl )
             {
@@ -1172,7 +1177,7 @@ mission. We are so grateful for your commitment.</p>
                 if ( parameterAccountOptions.Any() )
                 {
                     selectableAccountIds = parameterAccountOptions.Select( a => a.AccountId ).ToList();
-                    string invalidAccountInURLMessage = this.GetAttributeValue( AttributeKey.InvalidAccountInURLMessage );
+                    string invalidAccountInURLMessage = this.GetAttributeValue( AttributeKey.InvalidAccountMessage );
                     if ( invalidAccountInURLMessage.IsNotNullOrWhiteSpace() )
                     {
                         var validAccountUrlIdsQuery = new FinancialAccountService( rockContext ).GetByIds( selectableAccountIds )
@@ -1190,6 +1195,7 @@ mission. We are so grateful for your commitment.</p>
 
                         if ( selectableAccountIds.Where( a => !validAccountIds.Contains( a ) ).Any() )
                         {
+                            nbConfigurationNotification.Title = "";
                             nbConfigurationNotification.Text = invalidAccountInURLMessage;
                             nbConfigurationNotification.NotificationBoxType = NotificationBoxType.Validation;
                             nbConfigurationNotification.Visible = true;
@@ -1209,6 +1215,25 @@ mission. We are so grateful for your commitment.</p>
             {
                 caapPromptForAccountAmounts.AccountAmounts = accountAmounts;
             }
+        }
+
+        /// <summary>
+        /// Sets the selected CampusId from a CampusId url parameter or the target person of the transaction.
+        /// </summary>
+        private int? GetCampusId( Person person )
+        {
+            var campusId = this.PageParameter( PageParameterKey.CampusId ).AsIntegerOrNull();
+
+            if ( !campusId.HasValue && person != null )
+            {
+                var personCampus = person.GetCampus();
+                if ( personCampus != null )
+                {
+                    campusId = personCampus.Id;
+                }
+            }
+
+            return campusId;
         }
 
         /// <summary>
@@ -1885,6 +1910,9 @@ mission. We are so grateful for your commitment.</p>
             {
                 // If a person key was supplied then try to get that person
                 _targetPerson = new PersonService( rockContext ).GetByPersonActionIdentifier( personActionId, "transaction" );
+
+                // Pre-load campus to avoid lazy loading later when the _targetPerson field is utilized.
+                _targetPerson.GetCampus();
 
                 if ( allowImpersonation )
                 {
@@ -3270,7 +3298,7 @@ mission. We are so grateful for your commitment.</p>
                     if ( scheduledTransactionAlreadyExists != null )
                     {
                         // Hopefully shouldn't happen, but just in case the scheduledtransaction already went through, show the success screen.
-                        ShowSuccess( gateway, person, paymentInfo );
+                        ShowSuccess( gateway, person, paymentInfo, givingAsBusiness );
                         return true;
                     }
 
@@ -3292,7 +3320,7 @@ mission. We are so grateful for your commitment.</p>
                     if ( transactionAlreadyExists != null )
                     {
                         // hopefully shouldn't happen, but just in case the transaction already went thru, show the success screen
-                        ShowSuccess( gateway, person, paymentInfo );
+                        ShowSuccess( gateway, person, paymentInfo, givingAsBusiness );
                         return true;
                     }
 
@@ -3309,7 +3337,7 @@ mission. We are so grateful for your commitment.</p>
                     paymentDetail = transaction.FinancialPaymentDetail.Clone( false );
                 }
 
-                ShowSuccess( gateway, person, paymentInfo );
+                ShowSuccess( gateway, person, paymentInfo, givingAsBusiness );
 
                 return true;
             }
@@ -3548,7 +3576,7 @@ mission. We are so grateful for your commitment.</p>
             }
         }
 
-        private void ShowSuccess( IHostedGatewayComponent gatewayComponent, Person person, ReferencePaymentInfo paymentInfo )
+        private void ShowSuccess( IHostedGatewayComponent gatewayComponent, Person person, ReferencePaymentInfo paymentInfo, bool givingAsBusiness )
         {
             var mergeFields = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson, new CommonMergeFieldsOptions() );
             var finishLavaTemplate = this.GetAttributeValue( AttributeKey.FinishLavaTemplate );
@@ -3645,7 +3673,7 @@ mission. We are so grateful for your commitment.</p>
                     CreateSavedAccount( accountTitle, rockContext, true );
                 }
             }
-            else if ( !isSavedAccount && !string.IsNullOrWhiteSpace( TransactionCode ) && gatewayComponent.SupportsSavedAccount( paymentInfo.CurrencyTypeValue ) )
+            else if ( !givingAsBusiness && !isSavedAccount && !string.IsNullOrWhiteSpace( TransactionCode ) && gatewayComponent.SupportsSavedAccount( paymentInfo.CurrencyTypeValue ) )
             {
                 cbSaveAccount.Visible = true;
                 pnlSaveAccount.Visible = true;

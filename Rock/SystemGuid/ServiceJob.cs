@@ -149,6 +149,11 @@ namespace Rock.SystemGuid
         public const string DATA_MIGRATIONS_150_SYSTEM_PHONE_NUMBERS = "6DFE731E-F28B-40B3-8383-84212A301214";
 
         /// <summary>
+        /// The Job to run Post v15.2 Data Migrations for the AttributeValue.IX_ValueAsPersonId index.
+        /// </summary>
+        public const string DATA_MIGRATIONS_152_IX_VALUE_AS_PERSON_ID = "5DC19FB3-AB0B-48F3-817D-9023C65C5F8A";
+
+        /// <summary>
         /// The Job to run Post v15.1 Replace Web Forms Blocks with Obsidian Blocks.
         /// </summary>
         public const string DATA_MIGRATIONS_150_REPLACE_WEB_FORMS_BLOCKS_WITH_OBSIDIAN_BLOCKS = "EA00D1D4-709A-4102-863D-08471AA2C345";
@@ -157,6 +162,11 @@ namespace Rock.SystemGuid
         /// The Job to run Post v15.2 to replace web forms blocks with Obsidian blocks.
         /// </summary>
         public const string DATA_MIGRATIONS_152_REPLACE_WEB_FORMS_BLOCKS_WITH_OBSIDIAN_BLOCKS = "4232194C-90AE-4B44-93E7-1E5DE984A9E1";
+
+        /// <summary>
+        /// The Job to run Post v15.4 to update the AgeBracket values to reflect the new values after spliting the 0 - 12 bracket.
+        /// </summary>
+        public const string DATA_MIGRATIONS_154_UPDATE_AGE_BRACKET_VALUES = "C1234A63-09A6-45C1-96D8-0DE03EC4A7A1";
 
         /// <summary>
         /// The Job to run Post v16.0 Move Person Preferences.
@@ -207,6 +217,16 @@ namespace Rock.SystemGuid
         /// The Job to run Post v16.0 Data Migrations to update the media element default urls.
         /// </summary>
         public const string DATA_MIGRATIONS_160_UPDATE_MEDIA_ELEMENT_DEFAULT_URLS = "3f2a18ce-882d-4687-a4e4-b2a34af2777d";
+
+        /// <summary>
+        /// The Job to run Post v16.1 Data Migrations to swap Financial Batch List web forms block with obsidian block.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_SWAP_FINANCIAL_BATCH_LIST = "7750ECFD-26E3-49DE-8E90-1B1A6DCCC3FE";
+
+        /// <summary>
+        /// The Job to run Post v16.1 Data Migrations to swap AccountEntry and Login web forms blocks with obisdian blocks.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_CHOP_ACCOUNTENTRY_AND_LOGIN = "A65D26C1-229E-4198-B388-E269C3534BC0";
 
         /// <summary>
         /// The Job to get NCOA
@@ -296,5 +316,35 @@ namespace Rock.SystemGuid
         /// The post update data migration job to chop the Group Registration block
         /// </summary>
         public const string DATA_MIGRATIONS_160_CHOP_BLOCKS_GROUP_REGISTRATION = "72D9EC04-517A-4CA0-B631-9F9A41F1790D";
+
+        /// <summary>
+        /// The post update data migration job to swap the Group Schedule Toolbox V1.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_SWAP_BLOCK_GROUP_SCHEDULE_TOOLBOX_V1 = "22DBD648-79C0-40C7-B561-094E4E7637E5";
+
+        /// <summary>
+        /// The post update data migration job to chop the Group Schedule Toolbox V2.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_CHOP_BLOCK_GROUP_SCHEDULE_TOOLBOX_V2 = "7F989E9F-913C-45E4-9EB1-EC70AC220939";
+
+        /// <summary>
+        /// The post update data migration job to remove obsidian group schedule toolbox back buttons.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_REMOVE_OBSIDIAN_GROUP_SCHEDULE_TOOLBOX_BACK_BUTTONS = "781F2D3B-E5E4-41D5-9145-1D70DDB3EE04";
+
+        /// <summary>
+        /// The post update data migration job to remove the legacy Communication Recipient List Webforms block.
+        /// </summary>
+        public const string DATA_MIGRATIONS_170_REMOVE_COMMUNICATION_RECIPIENT_LIST_BLOCK = "54CCFFFD-83A8-4BB6-A699-DDE34310BFE6";
+
+        /// <summary>
+        /// The post update data migration job to chop the Login and Account Entry blocks.
+        /// </summary>
+        public const string DATA_MIGRATIONS_161_CHOP_SECURITY_BLOCKS = "A65D26C1-229E-4198-B388-E269C3534BC0";
+
+        /// <summary>
+        /// The post update data migraiton job to remove legacy preference attributes.
+        /// </summary>
+        public const string DATA_MIGRATIONS_170_REMOVE_LEGACY_PREFERENCES = "46d98280-7611-4588-831d-6924e2be9da6";
     }
 }

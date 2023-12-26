@@ -19,7 +19,7 @@ import { Guid } from "@Obsidian/Types";
 import axios, { AxiosProgressEvent, AxiosResponse } from "axios";
 import { ListItemBag } from "@Obsidian/ViewModels/Utility/listItemBag";
 import { HttpBodyData, HttpMethod, HttpFunctions, HttpResult, HttpUrlParams } from "@Obsidian/Types/Utility/http";
-import { inject, provide } from "vue";
+import { inject, provide, getCurrentInstance } from "vue";
 
 
 // #region HTTP Requests
@@ -139,7 +139,15 @@ export function provideHttp(functions: HttpFunctions): void {
  * @returns An object that contains the functions which can be called.
  */
 export function useHttp(): HttpFunctions {
-    return inject<HttpFunctions>(httpFunctionsSymbol) || {
+    let http: HttpFunctions | undefined;
+
+    // Check if we are inside a setup instance. This prevents warnings
+    // from being displayed if being called outside a setup() function.
+    if (getCurrentInstance()) {
+        http = inject<HttpFunctions>(httpFunctionsSymbol);
+    }
+
+    return http || {
         doApiCall: doApiCall,
         get: get,
         post: post
@@ -177,6 +185,12 @@ export type UploadOptions = {
 
     /** A function to call to report the ongoing progress of the upload. */
     progress: UploadProgressCallback;
+
+    /** The parent entity type identifier */
+    parentEntityTypeId?: number;
+
+    /** The parent entity identifier */
+    parentEntityId?: number;
 };
 
 /**
@@ -266,6 +280,14 @@ export async function uploadBinaryFile(file: File, binaryFileTypeGuid: Guid, opt
     }
     else {
         url += "&isTemporary=True";
+    }
+
+    if (options?.parentEntityTypeId) {
+        url += "&ParentEntityTypeId=" + options.parentEntityTypeId;
+    }
+
+    if (options?.parentEntityId) {
+        url += "&ParentEntityId=" + options.parentEntityId;
     }
 
     const formData = new FormData();

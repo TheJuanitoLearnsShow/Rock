@@ -423,14 +423,17 @@ namespace RockWeb.Blocks.Mobile
         /// <returns>System.String.</returns>
         private string RemoveMobileCategoryPrefix( string category )
         {
-            var text = category;
-
-            if ( text.StartsWith( "Mobile >" ) )
+            if ( category.IsNullOrWhiteSpace() )
             {
-                text = category.Replace( "Mobile >", string.Empty ).Trim();
+                return category;
             }
 
-            return text;
+            if ( category.StartsWith( "Mobile >" ) )
+            {
+                category = category.Replace( "Mobile >", string.Empty ).Trim();
+            }
+
+            return category;
         }
 
         /// <summary>
@@ -770,6 +773,9 @@ namespace RockWeb.Blocks.Mobile
             ceEventHandler.Text = additionalSettings.LavaEventHandler;
             ceCssStyles.Text = additionalSettings.CssStyles;
             imgPageIcon.BinaryFileId = page.IconBinaryFileId;
+
+            page.LoadAttributes();
+            avcAttributes.AddEditControls( page, Rock.Security.Authorization.EDIT, CurrentPerson );
 
             ddlMenuDisplayWhen.BindToEnum<Rock.Model.DisplayInNavWhen>();
             ddlMenuDisplayWhen.SetValue( page.DisplayInNavWhen.ToStringSafe().AsIntegerOrNull() ?? page.DisplayInNavWhen.ConvertToInt() );
@@ -1151,6 +1157,9 @@ namespace RockWeb.Blocks.Mobile
                 oldIconId = page.IconBinaryFileId;
                 page.IconBinaryFileId = imgPageIcon.BinaryFileId;
             }
+
+            avcAttributes.GetEditValues( page );
+            page.SaveAttributeValues();
 
             // update PageContexts
             foreach ( var pageContext in page.PageContexts.ToList() )

@@ -44,6 +44,11 @@ namespace Rock.SystemGuid
         public const string ASSET = "FC27D395-8F57-467E-91FF-E648F807110E";
 
         /// <summary>
+        /// Asset storage provider field type
+        /// </summary>
+        public const string ASSET_STORAGE_PROVIDER = "1596F562-E8D0-4C5F-9A00-23B5594F17E2";
+
+        /// <summary>
         /// Asset Storage System field type
         /// </summary>
         public const string ASSET_STORAGE_SYSTEM = "A57109EE-35A2-45D0-A575-02DBBDFBC0D0";
@@ -209,6 +214,11 @@ namespace Rock.SystemGuid
         public const string CONTENT_CHANNEL = "D835A0EC-C8DB-483A-A37C-E8FB6E956C3D";
 
         /// <summary>
+        /// Content Channels field type
+        /// </summary>
+        public const string CONTENT_CHANNELS = "0E2B924A-C1AC-4A7C-AD77-A036581552D4";
+
+        /// <summary>
         /// Content Channel Item field type
         /// </summary>
         public const string CONTENT_CHANNEL_ITEM = "19BFB635-DC31-4C1E-8BB5-CDA120890BDE";
@@ -297,6 +307,11 @@ namespace Rock.SystemGuid
         /// Defined Value Range field type
         /// </summary>
         public const string DEFINED_VALUE_RANGE = "B5C07B16-844D-4620-82E3-4CCA8F5FC350";
+
+        /// <summary>
+        /// Document Type field type
+        /// </summary>
+        public const string DOCUMENT_TYPE = "1FD31CDC-E5E2-431B-8D53-72FC0430044D";
 
         /// <summary>
         /// Email field type
@@ -429,6 +444,11 @@ namespace Rock.SystemGuid
         public const string INTERACTION_CHANNEL = "5EE5D193-60B6-4808-9BE9-C5FFDDF444E4";
 
         /// <summary>
+        /// Interaction Channel Interaction Component field type
+        /// </summary>
+        public const string INTERACTION_CHANNEL_INTERACTION_COMPONENT = "299F8444-BB47-4B6C-B523-235156BF96DC";
+
+        /// <summary>
         /// Interaction Channels field type
         /// </summary>
         public const string INTERACTION_CHANNELS = "D5781EB0-3A2A-4FBB-AF8E-E14664147003";
@@ -544,6 +564,11 @@ namespace Rock.SystemGuid
         public const string PAGE_REFERENCE = "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108";
 
         /// <summary>
+        /// Persisted Dataset field type
+        /// </summary>
+        public const string PERSISTED_DATASET = "392865C4-F17B-4832-AB59-20F72BB1C9F6";
+
+        /// <summary>
         /// Person field type
         /// </summary>
         public const string PERSON = "E4EAB7B2-0B76-429B-AFE4-AD86D7428C70";
@@ -642,6 +667,36 @@ namespace Rock.SystemGuid
         /// Social Security Number
         /// </summary>
         public const string SSN = "4722C99A-C078-464A-968F-13AB5E8E318F";
+
+        /// <summary>
+        /// Step field type.
+        /// </summary>
+        public const string STEP = "829803DB-7CA3-44F6-B1CB-669D61ED6E92";
+
+        /// <summary>
+        /// Step program field type.
+        /// </summary>
+        public const string STEP_PROGRAM = "33875369-7D2B-4CD7-BB89-ABC29906CCAE";
+
+        /// <summary>
+        /// Step propgram step status field type.
+        /// </summary>
+        public const string STEP_PROGRAM_STEP_STATUS = "F8E85355-2780-4772-9B21-30B84741E6D1";
+
+        /// <summary>
+        /// Step program step type field type.
+        /// </summary>
+        public const string STEP_PROGRAM_STEP_TYPE = "B00149C7-08D6-448C-AF21-948BF453DF7E";
+
+        /// <summary>
+        /// Streak Type field type
+        /// </summary>
+        public const string STREAK_TYPE = "F1411F4A-BD4B-4F80-9A83-94026C009F4D";
+
+        /// <summary>
+        /// Streak Type field type
+        /// </summary>
+        public const string STRUCTURE_CONTENT_EDITOR = "92C88D02-CE12-4217-80FB-19422B758437";
 
         /// <summary>
         /// System Email field type

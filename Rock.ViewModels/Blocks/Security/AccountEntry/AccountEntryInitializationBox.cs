@@ -143,5 +143,26 @@ namespace Rock.ViewModels.Blocks.Security.AccountEntry
         /// The  account entry step box.
         /// </value>
         public AccountEntryRegisterResponseBox AccountEntryRegisterStepBox { get; set; }
+
+        /// <summary>
+        /// Indicating whether the Gender dropdown is shown.
+        /// </summary>
+        public bool IsGenderPickerShown { get; set; }
+
+        /// <summary>
+        /// Gets or sets the person details if there is an identified user.
+        /// </summary>
+        /// <value>
+        /// The account entry person information bag.
+        /// </value>
+        public AccountEntryPersonInfoBag AccountEntryPersonInfoBag { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether captcha support should be disabled for this block.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [disable captcha support]; otherwise, <c>false</c>.
+        /// </value>
+        public bool DisableCaptchaSupport { get; set; }
     }
 }

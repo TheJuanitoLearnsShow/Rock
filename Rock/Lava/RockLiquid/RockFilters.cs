@@ -389,7 +389,7 @@ namespace Rock.Lava
                 catch { }
             }
 
-            if ( numericQuantity > 1 )
+            if ( numericQuantity != 1 && numericQuantity != -1 )
             {
                 return input.Pluralize();
             }
@@ -2318,7 +2318,7 @@ namespace Rock.Lava
                     // Check qualifer for "HtmlValue" and if true return PersistedHtmlValue
                     if (qualifier.Equals( "HtmlValue", StringComparison.OrdinalIgnoreCase ))
                     {
-                        return item.AttributeValues[attributeKey].PersistedTextValue;
+                        return item.AttributeValues[attributeKey].PersistedHtmlValue;
                     }
 
                     // Check qualifer for "CondensedTextValue" and if true return PersistedTextValue

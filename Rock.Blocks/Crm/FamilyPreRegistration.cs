@@ -18,6 +18,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Rock.Attribute;
 using Rock.ClientService.Core.Campus;
@@ -31,6 +32,7 @@ using Rock.Security;
 using Rock.ViewModels.Blocks.Crm.FamilyPreRegistration;
 using Rock.ViewModels.Controls;
 using Rock.ViewModels.Utility;
+using Rock.Web;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -39,6 +41,7 @@ namespace Rock.Blocks.Crm
     [DisplayName( "Family Pre Registration" )]
     [Category( "CRM" )]
     [Description( "Provides a way to allow people to pre-register their families for weekend check-in." )]
+    [SupportedSiteTypes( Model.SiteType.Web )]
 
     #region Block Attributes
 
@@ -203,6 +206,13 @@ namespace Rock.Blocks.Crm
         IsRequired = true,
         DefaultValue = "Hide",
         Order = 18 )]
+
+    [BooleanField(
+        "Disable Captcha Support",
+        Key = AttributeKey.DisableCaptchaSupport,
+        Description = "If set to 'Yes' the CAPTCHA verification step will not be performed.",
+        DefaultBooleanValue = false,
+        Order = 19 )]
 
     #region Adult Category
 
@@ -530,6 +540,7 @@ namespace Rock.Blocks.Crm
             public const string RedirectURL = "RedirectURL";
             public const string RequireCampus = "RequireCampus";
             public const string DisplaySmsOptIn = "DisplaySmsOptIn";
+            public const string DisableCaptchaSupport = "DisableCaptchaSupport";
             
             public const string AdultSuffix = "AdultSuffix";
             public const string AdultGender = "AdultGender";
@@ -1193,9 +1204,9 @@ namespace Rock.Blocks.Crm
                         person.CommunicationPreference = ( CommunicationType ) ( int ) child.CommunicationPreference;
                     }
 
-                    if ( isChildProfileShown )
+                    if ( isChildProfileShown && child.ProfilePhotoGuid.HasValue )
                     {
-                        person.PhotoId = child.ProfilePhotoGuid.HasValue ? binaryFileService.GetId( child.ProfilePhotoGuid.Value ) : null;
+                        person.PhotoId = binaryFileService.GetId( child.ProfilePhotoGuid.Value );
                     }
 
                     if ( isChildRaceShown )
@@ -1410,7 +1421,7 @@ namespace Rock.Blocks.Crm
 
                     if ( isPlannedVisitDateShown )
                     {
-                        var visitDate = bag.PlannedVisitDate;
+                        var visitDate = bag.PlannedVisitDate?.Date;
                         if ( visitDate.HasValue )
                         {
                             parameters.Add( AttributeKey.PlannedVisitDate, visitDate.Value.ToString( "o" ) );
@@ -1418,7 +1429,7 @@ namespace Rock.Blocks.Crm
                     }
                     else if ( isPlannedVisitScheduleShown )
                     {
-                        var visitDate = bag.PlannedVisitDate;
+                        var visitDate = bag.PlannedVisitDate?.Date;
                         if ( visitDate.HasValue )
                         {
                             parameters.Add( AttributeKey.PlannedVisitDate, visitDate.Value.ToString( "o" ) );
@@ -1592,15 +1603,10 @@ namespace Rock.Blocks.Crm
         {
             errorMessages = new List<string>();
 
-            if ( bag.FullName.IsNotNullOrWhiteSpace() )
+            var disableCaptcha = GetAttributeValue( AttributeKey.DisableCaptchaSupport ).AsBoolean() || string.IsNullOrWhiteSpace( SystemSettings.GetValue( SystemKey.SystemSetting.CAPTCHA_SITE_KEY ) );
+            if ( !disableCaptcha && !bag.IsCaptchaValid )
             {
-                /* 03/22/2021 MDP
-
-                see https://app.asana.com/0/1121505495628584/1200018171012738/f on why this is done
-
-                */
-
-                errorMessages.Add( "Invalid Form Value" );
+                errorMessages.Add( "There was an issue processing your request. Please try again. If the issue persists please contact us." );
                 return false;
             }
 
@@ -1920,7 +1926,8 @@ namespace Rock.Blocks.Crm
                 ChildCommunicationPreferenceField = GetFieldBag( AttributeKey.ChildDisplayCommunicationPreference ),
                 ChildProfilePhotoField = GetFieldBag( AttributeKey.ChildProfilePhoto ),
                 ChildRaceField = GetFieldBag( AttributeKey.ChildRaceOption ),
-                ChildEthnicityField = GetFieldBag( AttributeKey.ChildEthnicityOption )
+                ChildEthnicityField = GetFieldBag( AttributeKey.ChildEthnicityOption ),
+                DisableCaptchaSupport = GetAttributeValue( AttributeKey.DisableCaptchaSupport ).AsBoolean(),
             };
 
             using ( var rockContext = new RockContext() )
@@ -2314,6 +2321,7 @@ namespace Rock.Blocks.Crm
                 };
             }
 
+            var displayMobilePhoneChildren = this.GetAttributeValue( AttributeKey.ChildMobilePhone ) == "Hide" ? false : true;
             var displaySmsAttributeValue = this.GetAttributeValue( AttributeKey.DisplaySmsOptIn );
             var smsOptInDisplayText = Rock.Web.SystemSettings.GetValue( Rock.SystemKey.SystemSetting.SMS_OPT_IN_MESSAGE_LABEL );
 
@@ -2353,7 +2361,7 @@ namespace Rock.Blocks.Crm
                     IsHidden = false,
                     IsShowFirstAdult = true,
                     IsShowAllAdults = true,
-                    IsShowChildren = true
+                    IsShowChildren = displayMobilePhoneChildren
                 };
                 default:
                 return new FamilyPreRegistrationSmsOptInFieldBag
@@ -2674,7 +2682,7 @@ namespace Rock.Blocks.Crm
                     bag.LastName.Trim(),
                     bag.Email?.Trim(),
                     bag.MobilePhone?.Trim(),
-                    bag.Gender,
+                    bag.Gender == Gender.Unknown ? (Gender?)null : bag.Gender,
                     bag.BirthDate.ToDateTime(),
                     DefinedValueCache.GetId( bag.SuffixDefinedValueGuid.GetValueOrDefault() ) );
 
@@ -2720,7 +2728,10 @@ namespace Rock.Blocks.Crm
 
             if ( GetFieldBag( AttributeKey.AdultGender ).IsShown )
             {
-                adult.Gender = bag.Gender;
+                if ( bag.Gender != Gender.Unknown || saveEmptyValues )
+                {
+                    adult.Gender = bag.Gender;
+                }
             }
 
             var adultBirthdateOptions = GetDatePickerFieldBag( AttributeKey.AdultBirthdate );
@@ -2748,10 +2759,6 @@ namespace Rock.Blocks.Crm
                 {
                     adult.MaritalStatusValueId = DefinedValueCache.GetId( bag.MaritalStatusDefinedValueGuid.Value );
                 }
-                else
-                {
-                    adult.MaritalStatusValueId = null;
-                } 
             }
 
             if ( isEmailShown )
@@ -2857,8 +2864,7 @@ namespace Rock.Blocks.Crm
                     mobilePhoneNumber = new PhoneNumber
                     {
                         PersonId = personId,
-                        NumberTypeValueId = mobilePhoneDefinedValueId.Value,
-                        IsMessagingEnabled = isSmsNumber
+                        NumberTypeValueId = mobilePhoneDefinedValueId.Value
                     };
 
                     phoneNumberService.Add( mobilePhoneNumber );
@@ -2866,6 +2872,7 @@ namespace Rock.Blocks.Crm
 
                 mobilePhoneNumber.CountryCode = PhoneNumber.CleanNumber( countryCode );
                 mobilePhoneNumber.Number = number;
+                mobilePhoneNumber.IsMessagingEnabled = isSmsNumber;
             }
             else
             {

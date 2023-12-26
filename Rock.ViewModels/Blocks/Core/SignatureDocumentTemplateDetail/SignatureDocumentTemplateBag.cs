@@ -86,5 +86,33 @@ namespace Rock.ViewModels.Blocks.Core.SignatureDocumentTemplateDetail
         /// The signature input types.
         /// </value>
         public List<ListItemBag> SignatureInputTypes { get; set; }
+
+        /// <summary>
+        /// Gets or sets the PDF URL.
+        /// </summary>
+        /// <value>
+        /// The PDF URL.
+        /// </value>
+        public string PdfUrl { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance can administrate.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance can administrate; otherwise, <c>false</c>.
+        /// </value>
+        public bool CanAdministrate { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating if the signature document made using this template
+        /// may be kept valid for future use.
+        /// </summary>
+        public bool IsValidInFuture { get; set; }
+
+        /// <summary>
+        /// Gets or sets a number of days the signature document made form this template be deemed valid.
+        /// This property is honored only if the IsValidInFuture property is set.
+        /// </summary>
+        public int? ValidityDurationInDays { get; set; }
     }
 }
